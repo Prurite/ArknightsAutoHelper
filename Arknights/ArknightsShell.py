@@ -9,8 +9,9 @@
 
 import optparse
 from collections import OrderedDict
+
+from Arknights.base import ArknightsHelper
 from Arknights.click_location import MAIN_TASK_SUPPORT
-from Arknights import ArknightsHelper
 
 
 class ArknightsShell():
@@ -33,7 +34,6 @@ class ArknightsShell():
 
     def parser(self):
         '''
-
         :return:
         '''
         usage = 'Usage: %prog [options] arg1 arg2 ...'
@@ -50,6 +50,10 @@ class ArknightsShell():
                                                "Use : to split the battle_id and time \n Use | to split the task-list")
         parser.add_option("-c", "--clear-daily", action="store_true", default=False, dest="clear_daily",
                           help="Clear daily task if call this option")
+        parser.add_option("-r", "--get-credit", action="store_true", default=False, dest="get_credit",
+                          help="Get credit if call this option")
+        parser.add_option("-u", "--get-building", action="store_true", default=False, dest="get_building",
+                          help="Clear building if call this option")
         (self.options, _) = parser.parse_args()
 
         if self.options.module_battle_slim & self.options.module_battle:
@@ -75,19 +79,25 @@ class ArknightsShell():
             exit(0)
 
     def handler(self):
-        if self.options.module_battle_slim | self.options.module_battle | self.options.clear_daily:
+        if self.options.module_battle_slim | self.options.module_battle | self.options.clear_daily | self.options.get_credit | self.options.get_building:
             Ark = ArknightsHelper()
             if self.options.module_battle_slim:
                 id, count = self.task_list.popitem()
                 Ark.module_battle_slim(
-                    c_id=id,
+                    c_id=None,
                     set_count=count,
                 )
 
             if self.options.module_battle:
                 Ark.main_handler(
                     clear_tasks=True,
-                    task_list=self.task_list
+                    task_list=self.task_list.items()
                 )
             if self.options.clear_daily:
                 Ark.clear_daily_task()
+                
+            if self.options.get_credit:
+                Ark.get_credit()
+                
+            if self.options.get_building:
+                Ark.get_building()

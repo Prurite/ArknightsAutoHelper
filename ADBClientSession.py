@@ -1,10 +1,11 @@
+import gzip
 import socket
 import struct
-import gzip
+
 
 def _recvexactly(sock, n):
     buf = sock.recv(n)
-    assert(len(buf) != 0)
+    assert (len(buf) != 0)
     remain = n - len(buf)
     while remain > 0:
         buf2 = sock.recv(remain)
@@ -31,6 +32,8 @@ def _check_okay(sock):
 
 def _read_hexlen(sock):
     textlen = int(_recvexactly(sock, 4), 16)
+    if textlen == 0:
+        return b''
     buf = _recvexactly(sock, textlen)
     return buf
 
@@ -64,11 +67,16 @@ class ADBClientSession:
         devices = [tuple(line.split('\t')) for line in resp.splitlines()]
         return devices
 
+    def connect(self, device):
+        resp = self.service('host:connect:%s' % device).read_response()
+        if b'unable' in resp:
+            raise RuntimeError(resp)
+
     def device(self, devid=None):
         """switch to a device"""
         if devid is None:
             return self.service('host:transport-any')
-        return self.service('host:transport:'+devid)
+        return self.service('host:transport:' + devid)
 
     def usbdevice(self):
         """switch to a USB-connected device"""
@@ -80,7 +88,7 @@ class ADBClientSession:
 
     def exec_stream(self, cmd=''):
         """run command in device, with stdout/stdin attached to the socket returned"""
-        self.service('exec:'+cmd)
+        self.service('exec:' + cmd)
         return self.sock
 
     def exec(self, cmd):
@@ -94,7 +102,7 @@ class ADBClientSession:
 
     def shell_stream(self, cmd=''):
         """run command in device, with pty attached to the socket returned"""
-        self.service('shell:'+cmd)
+        self.service('shell:' + cmd)
         return self.sock
 
     def shell(self, cmd):
@@ -113,12 +121,12 @@ class ADBClientSession:
         # w, h, f = struct.unpack_from('III', data, 0)
         # assert(f == 1)
         # return (w, h, data[12:])
-    
+
     def screencap(self):
         """returns (width, height, pixels)
         pixels in RGBA/RGBX format"""
         data = self.exec('screencap|gzip')
         data = gzip.decompress(data)
         w, h, f = struct.unpack_from('III', data, 0)
-        assert(f == 1)
+        assert (f == 1)
         return (w, h, data[12:])
